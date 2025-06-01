@@ -1,20 +1,39 @@
-FROM richarvey/nginx-php-fpm:latest
+FROM php:8.2-cli
 
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    git \
+    unzip \
+    curl \
+    libzip-dev \
+    libonig-dev \
+    sqlite3 \
+    libsqlite3-dev \
+    && docker-php-ext-install pdo pdo_sqlite
+
+# Install Composer
+RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+
+# Set working directory
+WORKDIR /app
+
+# Copy project files
 COPY . .
 
-# Image config
-ENV SKIP_COMPOSER 1
-ENV WEBROOT /var/www/html/public
-ENV PHP_ERRORS_STDERR 1
-ENV RUN_SCRIPTS 1
-ENV REAL_IP_HEADER 1
+# Install PHP dependencies
+RUN composer install --no-dev --optimize-autoloader
 
-# Laravel config
-ENV APP_ENV production
-ENV APP_DEBUG false
-ENV LOG_CHANNEL stderr
+# Copy prebuilt SQLite DB to tmp (where Laravel can write)
+RUN mkdir -p /tmp && cp database/db.sqlite /tmp/database.sqlite
 
-# Allow composer to run as root
-ENV COMPOSER_ALLOW_SUPERUSER 1
+# Fix Laravel storage permissions
+RUN chmod -R 775 storage bootstrap/cache
 
-CMD ["/start.sh"]
+# Generate optimized config
+RUN php artisan config:cache
+
+# Expose port
+EXPOSE 8000
+
+# Start Laravel server
+CMD php artisan serve --host=0.0.0.0 --port=8000
