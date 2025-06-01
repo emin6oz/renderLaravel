@@ -17,17 +17,11 @@ COPY . .
 # Install PHP dependencies
 RUN composer install --no-dev --optimize-autoloader
 
-# Copy your committed SQLite file into the writable /tmp directory
-RUN mkdir -p /tmp && cp database/db.sqlite /tmp/database.sqlite
-
-# Fix permissions for Laravel storage
+# Fix permissions
 RUN chmod -R 775 storage bootstrap/cache
 
-# Cache config (optional – enable if env is stable)
-# RUN php artisan config:cache
-
-# Expose the port Laravel will use
+# Expose port
 EXPOSE 8000
 
-# Start Laravel development server
-CMD php artisan serve --host=0.0.0.0 --port=8000
+# Start Laravel server AND copy db file at runtime
+CMD cp database/db.sqlite /tmp/database.sqlite && php artisan serve --host=0.0.0.0 --port=8000
