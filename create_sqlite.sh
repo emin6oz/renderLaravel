@@ -1,3 +1,3 @@
 #!/bin/bash
-touch /tmp/database.sqlite
+touch /database/db.sqlite
 php artisan migrate --force
